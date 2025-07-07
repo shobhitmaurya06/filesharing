@@ -59,6 +59,7 @@ async function parseForm(req) {
 
 // POST Handler
 export async function POST(req) {
+    res.setHeader('Allow', ['POST', 'OPTIONS']);
   try {
     const nodeReq = await toNodeStream(req);
     const { files } = await parseForm(nodeReq);
@@ -68,7 +69,7 @@ export async function POST(req) {
       throw new Error("No file uploaded");
     }
 
-  const originalFullName = path.basename(file.originalFilename); // "myDoc.pdf"
+const originalFullName = path.basename(file.originalFilename); // "myDoc.pdf"
 const result = await cloudinary.uploader.upload(file.filepath, {
   folder: "uploads",
   resource_type: "raw",
