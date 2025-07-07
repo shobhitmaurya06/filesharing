@@ -58,7 +58,7 @@ export default function Card() {
     if (!publicId || hasDeletedRef.current) return;
 
     try {
-      const res = await fetch("/api/delete", {
+      const res = await fetch("api/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ public_id: publicId }),
@@ -99,7 +99,7 @@ export default function Card() {
     if (!publicId) return;
 
     try {
-      const res = await fetch("/api/delete", {
+      const res = await fetch("api/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ public_id: publicId }),
