@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { IoIosCloudUpload } from "react-icons/io";
 import { FaDownload } from "react-icons/fa";
 import QRCode from "qrcode";
@@ -19,6 +19,15 @@ export default function Card() {
 
   const hasDeletedRef = useRef(false);
 
+  const resetAll = useCallback(() => {
+    setFile(null);
+    setFileName("");
+    setCloudUrl("");
+    setQrCode("");
+    setPublicId("");
+    setTimeLeft(null);
+  }, []);
+
   const handleUpload = async () => {
     if (!file) return;
 
@@ -33,7 +42,7 @@ export default function Card() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("app/api/upload/route.js", {
+      const res = await fetch("api/upload", {
         method: "POST",
         body: formData,
       });
@@ -54,13 +63,16 @@ export default function Card() {
     }
   };
 
-  const deleteFileFromCloudinary = async () => {
+  const deleteFileFromCloudinary = useCallback(async () => {
     if (!publicId || hasDeletedRef.current) return;
 
     try {
-      const res = await fetch("https://filesharing-orcin.vercel.app/api/delete", {
+      const res = await fetch("api/delete", {
         method: "POST",
-        headers: { "Content-Type": "application/json","Access-Control-Allow-Origin": "*" },
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
         body: JSON.stringify({ public_id: publicId }),
       });
 
@@ -68,17 +80,11 @@ export default function Card() {
 
       toast("⚠️ File deleted.");
       hasDeletedRef.current = true;
-
-      setFile(null);
-      setFileName("");
-      setCloudUrl("");
-      setQrCode("");
-      setPublicId("");
-      setTimeLeft(null);
+      resetAll();
     } catch (err) {
       toast.error(err.message);
     }
-  };
+  }, [publicId, resetAll]);
 
   useEffect(() => {
     if (!publicId || timeLeft === null || hasDeletedRef.current) return;
@@ -93,13 +99,13 @@ export default function Card() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft, publicId]);
+  }, [timeLeft, publicId, deleteFileFromCloudinary]);
 
   const handleReceive = async () => {
     if (!publicId) return;
 
     try {
-      const res = await fetch("app/api/delete/route.js", {
+      const res = await fetch("api/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ public_id: publicId }),
@@ -109,13 +115,7 @@ export default function Card() {
 
       toast.success("File marked as received ✅");
       setReceive("Received");
-
-      setFile(null);
-      setFileName("");
-      setCloudUrl("");
-      setQrCode("");
-      setPublicId("");
-      setTimeLeft(null);
+      resetAll();
     } catch (err) {
       toast.error(err.message);
     }

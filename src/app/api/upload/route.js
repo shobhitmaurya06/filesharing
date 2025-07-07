@@ -3,104 +3,91 @@ import { v2 as cloudinary } from "cloudinary";
 import formidable from "formidable";
 import fs from "fs";
 import path from "path";
-import { Readable } from "stream";
 
-// Disable built-in body parsing
+// Disable Next.js default body parser
 export const config = {
   api: {
     bodyParser: false,
   },
 };
 
-// Cloudinary configuration
+// Configure Cloudinary
 cloudinary.config({
   cloud_name: "dfrazzg8x",
   api_key: "843854963489147",
   api_secret: "nu_XBjWyv8ghKxDcAOeFu-HPCZ8",
 });
 
-// Uploads directory
-const uploadDir = path.join(process.cwd(), "public/uploads");
+// Ensure uploads directory exists
+const uploadDir = path.join(process.cwd(), "/public/uploads");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Convert Web API Request to Node stream
-async function toNodeStream(req) {
-  const buffer = await req.arrayBuffer();
-  const stream = new Readable();
-  stream.push(Buffer.from(buffer));
-  stream.push(null);
-  stream.headers = {
-    "content-type": req.headers.get("content-type"),
-    "content-length": req.headers.get("content-length") || "0",
-  };
-  return stream;
-}
-
-// Parse form with formidable
-async function parseForm(req) {
+// Helper to parse form using formidable
+const parseForm = async (req) => {
   const form = formidable({
     multiples: false,
-    keepExtensions: true,
     uploadDir,
-    filename: (_, ext, part) => {
-      return `${Date.now()}-${part.originalFilename}`;
-    },
+    keepExtensions: true,
+    filename: (_, ext, part) => `${Date.now()}-${part.originalFilename}`,
   });
 
   return new Promise((resolve, reject) => {
     form.parse(req, (err, fields, files) => {
-      if (err) return reject(err);
-      resolve({ fields, files });
+      if (err) reject(err);
+      else resolve({ fields, files });
     });
   });
-}
+};
 
-// POST Handler
+// API handler
 export async function POST(req) {
-    res.setHeader('Allow', ['POST', 'OPTIONS']);
   try {
-    const nodeReq = await toNodeStream(req);
-    const { files } = await parseForm(nodeReq);
-    const file = Array.isArray(files.file) ? files.file[0] : files.file;
+    // Convert the request to a compatible format for formidable
+    const formData = await req.formData();
+    const file = formData.get("file");
 
-    if (!file || !file.filepath) {
-      throw new Error("No file uploaded");
+    if (!file) {
+      return NextResponse.json({ error: "No file uploaded." }, { status: 400 });
     }
 
-  const originalFullName = path.basename(file.originalFilename); // "myDoc.pdf"
-const result = await cloudinary.uploader.upload(file.filepath, {
-  folder: "uploads",
-  resource_type: "raw",
-  public_id: `uploads/${originalFullName}`, // 👈 full name including extension
-  use_filename: true,
-  unique_filename: false, // ensures it uses this name exactly
-});
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
 
-    fs.unlinkSync(file.filepath); // delete temp file
+    const tempFilePath = path.join(uploadDir, `${Date.now()}-${file.name}`);
+    fs.writeFileSync(tempFilePath, buffer);
 
-    // Schedule auto-deletion in 3 minutes
+    const uploadResult = await cloudinary.uploader.upload(tempFilePath, {
+      folder: "uploads",
+      resource_type: "raw",
+      use_filename: true,
+      unique_filename: false,
+      public_id: `uploads/${file.name}`, // maintains full original name
+    });
+
+    // Clean up local file after upload
+    fs.unlinkSync(tempFilePath);
+
+    // Schedule auto-delete in 3 minutes
     setTimeout(async () => {
-      if(result?.public_id){
       try {
-        if(result?.public_id)
-        await cloudinary.uploader.destroy(result.public_id, {
-          resource_type: result.resource_type,
+        await cloudinary.uploader.destroy(uploadResult.public_id, {
+          resource_type: "raw",
         });
-      } catch (e) {
-        console.error("Failed to auto-delete Cloudinary file:", e.message);
+        console.log(`Auto-deleted: ${uploadResult.public_id}`);
+      } catch (error) {
+        console.error("Auto-delete failed:", error.message);
       }
-    }
     }, 3 * 60 * 1000);
 
     return NextResponse.json({
-      secure_url: result.secure_url,
-      public_id: result.public_id,
-      expiresAt: Date.now() + 5 * 60 * 1000,
+      secure_url: uploadResult.secure_url,
+      public_id: uploadResult.public_id,
+      expiresAt: Date.now() + 3 * 60 * 1000,
     });
   } catch (err) {
-    console.error("Upload error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error("Upload error:", err.message);
+    return NextResponse.json({ error: "Failed to upload file." }, { status: 500 });
   }
 }
