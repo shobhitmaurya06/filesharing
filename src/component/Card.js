@@ -1,9 +1,8 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { IoIosCloudUpload } from "react-icons/io";
-import { FaDownload } from "react-icons/fa";
+import { FaDownload, FaEye, FaCheck } from "react-icons/fa";
 import QRCode from "qrcode";
-import Link from "next/link";
 import Image from "next/image";
 import toast from "react-hot-toast";
 
@@ -17,6 +16,7 @@ export default function Card() {
   const [timeLeft, setTimeLeft] = useState(null);
   const [receive, setReceive] = useState("Receive");
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const hasDeletedRef = useRef(false);
 
@@ -28,7 +28,41 @@ export default function Card() {
     setPublicId("");
     setTimeLeft(null);
     setUploadProgress(0);
+    setIsDownloading(false);
   }, []);
+
+  const handleDownload = async (url, filename) => {
+    try {
+      setIsDownloading(true);
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch file');
+      
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename || 'downloaded-file';
+      document.body.appendChild(a);
+      a.click();
+      
+      window.URL.revokeObjectURL(blobUrl);
+      document.body.removeChild(a);
+      
+      toast.success('Download started successfully!');
+      return true;
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Download failed: ' + error.message);
+      return false;
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleViewFile = () => {
+    if (!cloudUrl) return;
+    window.open(cloudUrl, '_blank');
+  };
 
   const handleUpload = async () => {
     if (!file) return;
@@ -47,7 +81,7 @@ export default function Card() {
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+    if (file.size > 10 * 1024 * 1024) {
       toast.error("File size must be less than 10MB");
       return;
     }
@@ -65,15 +99,14 @@ export default function Card() {
       formData.append("file", file);
       const xhr = new XMLHttpRequest();
       xhr.open("POST", "api/upload", true);
-      // Progress tracking
+      
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
-          const progress = Math.round((event.loaded / event.total) * 100);
-          setUploadProgress(progress);
+          setUploadProgress(Math.round((event.loaded / event.total) * 100));
         }
       };
 
-      const uploadPromise = new Promise((resolve, reject) => {
+      const data = await new Promise((resolve, reject) => {
         xhr.onload = () => {
           if (xhr.status >= 200 && xhr.status < 300) {
             resolve(JSON.parse(xhr.responseText));
@@ -84,24 +117,17 @@ export default function Card() {
         xhr.onerror = () => reject(new Error("Network error"));
         xhr.send(formData);
       });
-
-      const data = await uploadPromise;
       
       setCloudUrl(data.secure_url);
       setPublicId(data.public_id);
-      
-      // Generate QR code
-      const qr = await QRCode.toDataURL(data.secure_url);
-      setQrCode(qr);
-      
-      setTimeLeft(180); // 3 minutes
+      setQrCode(await QRCode.toDataURL(data.secure_url));
+      setTimeLeft(180);
       toast.success("File uploaded successfully ✅");
     } catch (err) {
       console.error("Upload error:", err);
       toast.error(`Upload failed: ${err.message}`);
     } finally {
       setIsUploading(false);
-      setUploadProgress(0);
     }
   };
 
@@ -111,18 +137,15 @@ export default function Card() {
     try {
       const res = await fetch("api/delete", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ public_id: publicId }),
       });
 
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Delete failed");
+        throw new Error((await res.json()).error || "Delete failed");
       }
 
-      toast("⚠️ File deleted from cloud storage.");
+      toast("File deleted from cloud storage.");
       hasDeletedRef.current = true;
       resetAll();
     } catch (err) {
@@ -131,24 +154,11 @@ export default function Card() {
     }
   }, [publicId, resetAll]);
 
-  useEffect(() => {
-    if (!publicId || timeLeft === null || hasDeletedRef.current) return;
-
-    if (timeLeft <= 0) {
-      deleteFileFromCloudinary();
-      return;
-    }
-
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => (prev !== null ? prev - 1 : null));
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [timeLeft, publicId, deleteFileFromCloudinary]);
-
   const handleReceive = async () => {
     if (!publicId) return;
+    
     try {
+      // Only delete from Cloudinary
       const res = await fetch("api/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -156,8 +166,7 @@ export default function Card() {
       });
 
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Receive failed");
+        throw new Error((await res.json()).error || "Receive failed");
       }
 
       toast.success("File marked as received ✅");
@@ -170,16 +179,26 @@ export default function Card() {
   };
 
   useEffect(() => {
+    if (!publicId || timeLeft === null || hasDeletedRef.current) return;
+
+    if (timeLeft <= 0) {
+      deleteFileFromCloudinary();
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setTimeLeft(prev => prev !== null ? prev - 1 : null);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timeLeft, publicId, deleteFileFromCloudinary]);
+
+  useEffect(() => {
     const handleBeforeUnload = (e) => {
       if (publicId && !hasDeletedRef.current) {
         e.preventDefault();
         e.returnValue = "You have unsaved uploads. Are you sure you want to leave?";
-        
-        // Attempt to delete file before leaving
-        navigator.sendBeacon(
-          "/api/delete", 
-          JSON.stringify({ public_id: publicId })
-        );
+        navigator.sendBeacon("/api/delete", JSON.stringify({ public_id: publicId }));
       }
     };
 
@@ -278,21 +297,29 @@ export default function Card() {
             className="mx-auto border rounded-lg"
           />
 
-          <div className="mt-4 flex flex-col gap-3">
-            <Link
-              href={cloudUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <button
+              onClick={() => handleViewFile()}
               className="flex justify-center items-center gap-2 text-blue-600 hover:underline text-sm"
             >
+              <FaEye />
+              View File
+            </button>
+            
+            <button
+              onClick={() => handleDownload(cloudUrl, fileName)}
+              disabled={isDownloading}
+              className="flex justify-center items-center gap-2 text-blue-600 hover:underline text-sm disabled:opacity-50"
+            >
               <FaDownload />
-              Download File
-            </Link>
-
+              {isDownloading ? 'Downloading...' : 'Download'}
+            </button>
+            
             <button
               onClick={handleReceive}
-              className="bg-green-500 hover:bg-green-600 text-white px-5 py-1.5 rounded-full text-sm font-medium"
+              className="col-span-2 bg-green-500 hover:bg-green-600 text-white px-5 py-1.5 rounded-full text-sm font-medium flex items-center justify-center gap-2"
             >
+              <FaCheck />
               {receive}
             </button>
           </div>

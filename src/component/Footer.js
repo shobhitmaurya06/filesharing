@@ -5,7 +5,7 @@ export default function Footer() {
   return (
     <div className="w-full min-h-[12vh] border-t border-gray-600 shadow-xl shadow-gray-400 bg-gray-700">
       <footer className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col sm:flex-row justify-between items-center py-4 gap-4">
-        {/* Copyright text - responsive sizing and centered on mobile */}
+      
         <div className="text-center sm:text-left">
           <p className="text-sm sm:text-base font-medium text-gray-300">
             Copyright &copy; 2025 by Shobhit Maurya &amp; Yugraj Kumar Singh
@@ -14,8 +14,6 @@ export default function Footer() {
             All Rights Reserved
           </p>
         </div>
-
-        {/* Social links - centered on mobile */}
         <div className="flex gap-4 sm:gap-6">
           <Link
             href="https://www.linkedin.com/in/shobhit-maurya-5672a5263/"
