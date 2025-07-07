@@ -33,7 +33,7 @@ export default function Card() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("api/upload/route.js", {
+      const res = await fetch("api/upload", {
         method: "POST",
         body: formData,
       });
@@ -99,7 +99,7 @@ export default function Card() {
     if (!publicId) return;
 
     try {
-      const res = await fetch("/api/delete/route.js", {
+      const res = await fetch("/api/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ public_id: publicId }),
