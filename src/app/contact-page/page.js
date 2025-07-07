@@ -1,7 +1,7 @@
 "use client";
 import { useRef, useState } from "react";
 import emailjs from "emailjs-com";
-
+import Link from "next/link";
 export default function Contact() {
   const form = useRef();
   const [sendMail, setSendMail] = useState("Submit");
@@ -12,10 +12,10 @@ export default function Contact() {
 
     emailjs
       .sendForm(
-        "service_hfp9cst", // Replace with your EmailJS service ID
-        "template_7wb18sd", // Replace with your template ID
+        "service_hfp9cst", //  EmailJS service ID
+        "template_7wb18sd", //  template ID
         form.current,
-        "qqw0SUWax9RCNHFLy" // Replace with your public key
+        "qqw0SUWax9RCNHFLy" // public key
       )
       .then(
         (result) => {
@@ -44,7 +44,7 @@ export default function Contact() {
 
                 {/* Email */}
                 <div className="flex  items-center space-x-5 ">
-                  <a href="mailto:shobhitmaurya9346@gmail.com">
+                  <Link href="mailto:shobhitmaurya9346@gmail.com">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 24 24"
@@ -54,13 +54,13 @@ export default function Contact() {
                       <path d="M1.5 8.67v8.58a3 3 0 0 0 3 3h15a3 3 0 0 0 3-3V8.67l-8.928 5.493a3 3 0 0 1-3.144 0L1.5 8.67Z" />
                       <path d="M22.5 6.908V6.75a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3v.158l9.714 5.978a1.5 1.5 0 0 0 1.572 0L22.5 6.908Z" />
                     </svg>
-                  </a>
+                  </Link>
                   <p className="text-lg md:text-2xl lg:text-2xl text-textl  text-gray-600">
                     shobhitmaurya9346@gmail.com
                   </p>
                 </div>
                 <div className="flex items-center space-x-5 ">
-                  <a href="mailto:yugraj767@gmail.com">
+                  <Link href="mailto:yugraj767@gmail.com">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 24 24"
@@ -70,7 +70,7 @@ export default function Contact() {
                       <path d="M1.5 8.67v8.58a3 3 0 0 0 3 3h15a3 3 0 0 0 3-3V8.67l-8.928 5.493a3 3 0 0 1-3.144 0L1.5 8.67Z" />
                       <path d="M22.5 6.908V6.75a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3v.158l9.714 5.978a1.5 1.5 0 0 0 1.572 0L22.5 6.908Z" />
                     </svg>
-                  </a>
+                  </Link>
                   <p className="text-lg md:text-2xl lg:text-2xl text-textl  text-gray-600">
                     yugraj767@gmail.com
                   </p>
@@ -78,7 +78,7 @@ export default function Contact() {
 
                 {/* Location */}
                 <div className="flex items-center space-x-5">
-                  <a
+                  <Link
                     href="https://www.google.com/maps/search/?api=1&query=28.653933,77.445244"
                     target="_blank"
                     rel="noopener noreferrer"
@@ -95,7 +95,7 @@ export default function Contact() {
                         clipRule="evenodd"
                       />
                     </svg>
-                  </a>
+                  </Link>
                   <p className="text-lg md:text-2xl lg:text-2xl text-textl  text-gray-600">
                     Ghaziabad, Uttar Pradesh, India
                   </p>

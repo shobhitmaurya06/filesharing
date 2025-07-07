@@ -1,12 +1,10 @@
 "use client";
-
 import { useState, useEffect, useRef } from "react";
 import { IoIosCloudUpload } from "react-icons/io";
 import { FaDownload } from "react-icons/fa";
 import QRCode from "qrcode";
 import Link from "next/link";
 import toast from "react-hot-toast";
-
 export default function Card() {
   const [file, setFile] = useState(null);
   const [fileName, setFileName] = useState("");
