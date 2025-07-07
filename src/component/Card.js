@@ -16,6 +16,7 @@ export default function Card() {
   const [isUploading, setIsUploading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(null);
   const [receive, setReceive] = useState("Receive");
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const hasDeletedRef = useRef(false);
 
@@ -26,10 +27,30 @@ export default function Card() {
     setQrCode("");
     setPublicId("");
     setTimeLeft(null);
+    setUploadProgress(0);
   }, []);
 
   const handleUpload = async () => {
     if (!file) return;
+
+    // File validation
+    const allowedTypes = [
+      'image/jpeg',
+      'image/png',
+      'application/pdf',
+      'video/mp4',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Unsupported file type. Please upload JPG, PNG, PDF, MP4, or DOCX");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      toast.error("File size must be less than 10MB");
+      return;
+    }
 
     setIsUploading(true);
     setCloudUrl("");
@@ -37,29 +58,50 @@ export default function Card() {
     setPublicId("");
     setTimeLeft(null);
     hasDeletedRef.current = false;
+    setUploadProgress(0);
 
     try {
       const formData = new FormData();
       formData.append("file", file);
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "api/upload", true);
+      // Progress tracking
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const progress = Math.round((event.loaded / event.total) * 100);
+          setUploadProgress(progress);
+        }
+      };
 
-      const res = await fetch("api/upload", {
-        method: "POST",
-        body: formData,
+      const uploadPromise = new Promise((resolve, reject) => {
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(JSON.parse(xhr.responseText));
+          } else {
+            reject(new Error(xhr.statusText));
+          }
+        };
+        xhr.onerror = () => reject(new Error("Network error"));
+        xhr.send(formData);
       });
 
-      if (!res.ok) throw new Error("Upload failed");
-
-      const data = await res.json();
+      const data = await uploadPromise;
+      
       setCloudUrl(data.secure_url);
       setPublicId(data.public_id);
+      
+      // Generate QR code
       const qr = await QRCode.toDataURL(data.secure_url);
       setQrCode(qr);
+      
       setTimeLeft(180); // 3 minutes
       toast.success("File uploaded successfully ✅");
     } catch (err) {
-      toast.error("❌ Upload failed: " + err.message);
+      console.error("Upload error:", err);
+      toast.error(`Upload failed: ${err.message}`);
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -71,17 +113,20 @@ export default function Card() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
         },
         body: JSON.stringify({ public_id: publicId }),
       });
 
-      if (!res.ok) throw new Error("Delete failed");
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Delete failed");
+      }
 
-      toast("⚠️ File deleted.");
+      toast("⚠️ File deleted from cloud storage.");
       hasDeletedRef.current = true;
       resetAll();
     } catch (err) {
+      console.error("Delete error:", err);
       toast.error(err.message);
     }
   }, [publicId, resetAll]);
@@ -103,7 +148,6 @@ export default function Card() {
 
   const handleReceive = async () => {
     if (!publicId) return;
-
     try {
       const res = await fetch("api/delete", {
         method: "POST",
@@ -111,25 +155,34 @@ export default function Card() {
         body: JSON.stringify({ public_id: publicId }),
       });
 
-      if (!res.ok) throw new Error("Receive failed");
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Receive failed");
+      }
 
       toast.success("File marked as received ✅");
       setReceive("Received");
       resetAll();
     } catch (err) {
+      console.error("Receive error:", err);
       toast.error(err.message);
     }
   };
 
   useEffect(() => {
-    const handleBeforeUnload = () => {
+    const handleBeforeUnload = (e) => {
       if (publicId && !hasDeletedRef.current) {
-        const blob = new Blob([JSON.stringify({ public_id: publicId })], {
-          type: "application/json",
-        });
-        navigator.sendBeacon("/api/delete", blob);
+        e.preventDefault();
+        e.returnValue = "You have unsaved uploads. Are you sure you want to leave?";
+        
+        // Attempt to delete file before leaving
+        navigator.sendBeacon(
+          "/api/delete", 
+          JSON.stringify({ public_id: publicId })
+        );
       }
     };
+
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [publicId]);
@@ -140,12 +193,12 @@ export default function Card() {
         Secure File Upload
       </h1>
       <p className="text-base text-gray-600 text-center">
-        Supports: <span className="font-medium">JPG, PNG, PDF, MP4, DOCX</span>
+        Supports: <span className="font-medium">JPG, PNG, PDF, MP4, DOCX</span> (Max 10MB)
       </p>
 
       <label
         htmlFor="fileUpload"
-        className="flex flex-col items-center gap-2 p-4 bg-gray-100 hover:bg-gray-200 rounded-xl border border-dashed border-gray-400 cursor-pointer transition-all"
+        className="flex flex-col items-center gap-2 p-4 bg-gray-100 hover:bg-gray-200 rounded-xl border border-dashed border-gray-400 cursor-pointer transition-all w-full"
       >
         <Image
           src="/upload.png"
@@ -153,9 +206,10 @@ export default function Card() {
           width={64}
           height={64}
           className="hover:scale-105 transition-transform"
+          priority
         />
         <span className="text-sm text-gray-600 font-medium">
-          Click to select a file
+          {file ? "Change file" : "Click to select a file"}
         </span>
         <input
           type="file"
@@ -173,13 +227,19 @@ export default function Card() {
               hasDeletedRef.current = false;
             }
           }}
+          accept=".jpg,.jpeg,.png,.pdf,.mp4,.docx"
         />
       </label>
 
       {fileName && (
-        <p className="text-sm text-gray-700">
-          📄 <strong>Selected File:</strong> {fileName}
-        </p>
+        <div className="w-full text-center">
+          <p className="text-sm text-gray-700">
+            📄 <strong>Selected File:</strong> {fileName}
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            {(file.size / (1024 * 1024)).toFixed(2)} MB
+          </p>
+        </div>
       )}
 
       <button
@@ -195,6 +255,15 @@ export default function Card() {
         {isUploading ? "Uploading..." : "Upload"}
       </button>
 
+      {isUploading && (
+        <div className="w-full bg-gray-200 rounded-full h-2.5">
+          <div 
+            className="bg-indigo-600 h-2.5 rounded-full" 
+            style={{ width: `${uploadProgress}%` }}
+          ></div>
+        </div>
+      )}
+
       {qrCode && (
         <div className="mt-6 text-center w-full">
           <p className="text-sm text-gray-500 mb-3">
@@ -209,22 +278,24 @@ export default function Card() {
             className="mx-auto border rounded-lg"
           />
 
-          <Link
-            href={cloudUrl}
-            target="_blank"
-            download
-            className="mt-4 flex justify-center items-center gap-2 text-blue-600 hover:underline text-sm"
-          >
-            <FaDownload />
-            Download File
-          </Link>
+          <div className="mt-4 flex flex-col gap-3">
+            <Link
+              href={cloudUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex justify-center items-center gap-2 text-blue-600 hover:underline text-sm"
+            >
+              <FaDownload />
+              Download File
+            </Link>
 
-          <button
-            onClick={handleReceive}
-            className="mt-4 bg-green-500 hover:bg-green-600 text-white px-5 py-1.5 rounded-full text-sm font-medium"
-          >
-            {receive}
-          </button>
+            <button
+              onClick={handleReceive}
+              className="bg-green-500 hover:bg-green-600 text-white px-5 py-1.5 rounded-full text-sm font-medium"
+            >
+              {receive}
+            </button>
+          </div>
 
           {timeLeft !== null && (
             <p className="text-xs text-orange-600 mt-3 font-mono">
