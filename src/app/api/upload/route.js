@@ -67,7 +67,6 @@ export async function POST(req) {
     if (!file || !file.filepath) {
       throw new Error("No file uploaded");
     }
-
   const originalFullName = path.basename(file.originalFilename); // "myDoc.pdf"
 const result = await cloudinary.uploader.upload(file.filepath, {
   folder: "uploads",
