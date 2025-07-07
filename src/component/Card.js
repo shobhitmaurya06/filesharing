@@ -130,7 +130,6 @@ export default function Card() {
         navigator.sendBeacon("/api/delete", blob);
       }
     };
-
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [publicId]);
