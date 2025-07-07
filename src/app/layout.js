@@ -28,7 +28,7 @@ export const metadata = {
   openGraph: {
     title: "DocuVault",
     description: "Share files securely via QR code.",
-    url: "https://fileSharing.vercel.app",
+    url: "https://filesharing93.vercel.app/",
     siteName: "DocuVault",
     locale: "en_US",
     type: "website",
