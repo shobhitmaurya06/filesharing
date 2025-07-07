@@ -4,7 +4,9 @@ import { IoIosCloudUpload } from "react-icons/io";
 import { FaDownload } from "react-icons/fa";
 import QRCode from "qrcode";
 import Link from "next/link";
+import Image from "next/image";
 import toast from "react-hot-toast";
+
 export default function Card() {
   const [file, setFile] = useState(null);
   const [fileName, setFileName] = useState("");
@@ -78,7 +80,6 @@ export default function Card() {
     }
   };
 
-  // Auto-delete timer
   useEffect(() => {
     if (!publicId || timeLeft === null || hasDeletedRef.current) return;
 
@@ -109,7 +110,6 @@ export default function Card() {
       toast.success("File marked as received ✅");
       setReceive("Received");
 
-      // Reset state without reload
       setFile(null);
       setFileName("");
       setCloudUrl("");
@@ -121,7 +121,6 @@ export default function Card() {
     }
   };
 
-  // Delete file if tab closes
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (publicId && !hasDeletedRef.current) {
@@ -149,10 +148,12 @@ export default function Card() {
         htmlFor="fileUpload"
         className="flex flex-col items-center gap-2 p-4 bg-gray-100 hover:bg-gray-200 rounded-xl border border-dashed border-gray-400 cursor-pointer transition-all"
       >
-        <img
+        <Image
           src="/upload.png"
-          className="w-16 h-16 hover:scale-105 transition-transform"
           alt="Upload Icon"
+          width={64}
+          height={64}
+          className="hover:scale-105 transition-transform"
         />
         <span className="text-sm text-gray-600 font-medium">
           Click to select a file
@@ -201,10 +202,12 @@ export default function Card() {
             Scan QR or click below —{" "}
             <span className="text-red-500">auto-deletes in 3 minutes</span>
           </p>
-          <img
+          <Image
             src={qrCode}
             alt="QR Code"
-            className="w-44 h-44 mx-auto border rounded-lg"
+            width={176}
+            height={176}
+            className="mx-auto border rounded-lg"
           />
 
           <Link

@@ -22,11 +22,9 @@ const geistMono = Geist_Mono({
 export const metadata = {
   title: "DocuVault – Secure QR Document Sharing",
   description: "Share documents securely with QR codes. No login required.",
-  keywords: "QR file share, secure document sharing, upload and scan, Next.js app",
-  authors: [
-    { name: "Shobhit Maurya" },
-    { name: "Yugraj Kumar Singh" }
-  ],
+  keywords:
+    "QR file share, secure document sharing, upload and scan, Next.js app",
+  authors: [{ name: "Shobhit Maurya" }, { name: "Yugraj Kumar Singh" }],
   openGraph: {
     title: "DocuVault",
     description: "Share files securely via QR code.",
@@ -42,7 +40,7 @@ export default function RootLayout({ children }) {
     <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      > 
+      >
         <Toaster position="top-center" />
         <Suspense fallback={<Loading />}>
           <Header />

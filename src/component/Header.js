@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export default function Header() {
   return (
@@ -6,9 +7,11 @@ export default function Header() {
       <header className="sticky top-0 z-50 mx-auto flex h-[12vh] w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 ">
         {/* Logo */}
         <Link href="/">
-          <img
+           <Image
             src="/fileSharingLogo.jpg"
             alt="Logo"
+            width={48}  // You can adjust this as needed
+            height={48} // Based on your design
             className="h-12 w-auto cursor-pointer transition-transform duration-300 hover:scale-110"
           />
         </Link>
