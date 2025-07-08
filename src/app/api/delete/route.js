@@ -1,71 +1,40 @@
 import { v2 as cloudinary } from "cloudinary";
+import { NextResponse } from "next/server";
 
 // Configure Cloudinary
 cloudinary.config({
-  cloud_name: "dfrazzg8x",
-  api_key: "843854963489147",
-  api_secret: "nu_XBjWyv8ghKxDcAOeFu-HPCZ8",
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
 // Handle POST requests
-export async function POST(req) {
+export async function POST(request) {
   try {
-    const body = await req.json();
-    const { public_id } = body;
+    const { publicId } = await request.json();
 
-    if (!public_id || typeof public_id !== "string") {
-      return new Response(JSON.stringify({ error: "Missing or invalid public_id." }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+    if (!publicId) {
+      return NextResponse.json(
+        { error: "publicId is required" },
+        { status: 400 }
+      );
     }
 
-    const resourceTypes = ["image", "video", "raw"];
-
-    for (const type of resourceTypes) {
-      try {
-        const result = await cloudinary.uploader.destroy(public_id, {
-          resource_type: type,
-        });
-
-        if (result.result === "ok" || result.result === "not_found") {
-          return new Response(
-            JSON.stringify({
-              message: `✅ File deleted as '${type}'.`,
-              result,
-            }),
-            {
-              status: 200,
-              headers: { "Content-Type": "application/json" },
-            }
-          );
-        }
-      } catch (cloudErr) {
-        console.warn(`Attempt to delete as ${type} failed: ${cloudErr.message}`);
-        continue; // Try next resource type
-      }
+    const result = await cloudinary.uploader.destroy(publicId);
+    
+    if (result.result !== "ok") {
+      return NextResponse.json(
+        { error: "Failed to delete file" },
+        { status: 500 }
+      );
     }
 
-    return new Response(
-      JSON.stringify({
-        error: "❌ File deletion failed — unknown type or not found.",
-      }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("❌ Cloudinary Deletion Error:", error);
-    return new Response(
-      JSON.stringify({
-        error: "Internal server error during file deletion.",
-        details: error.message || error,
-      }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
+    console.error("Delete error:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to delete file" },
+      { status: 500 }
     );
   }
 }

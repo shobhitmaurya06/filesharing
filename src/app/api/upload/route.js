@@ -4,59 +4,67 @@ import { v2 as cloudinary } from "cloudinary";
 
 // Configure Cloudinary
 cloudinary.config({
-  cloud_name: "dfrazzg8x",
-  api_key:"843854963489147",
-  api_secret: "nu_XBjWyv8ghKxDcAOeFu-HPCZ8",
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-export async function POST(req) {
+export async function POST(request) {
   try {
-    const formData = await req.formData();
-    const file = formData.get("file");
+    const data = await request.formData();
+    const file = data.get("file");
 
     if (!file) {
-      return NextResponse.json({ error: "No file uploaded." }, { status: 400 });
+      return NextResponse.json(
+        { error: "No file uploaded" },
+        { status: 400 }
+      );
     }
 
-    // Convert file to buffer
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
 
-    // Upload directly to Cloudinary without saving locally
-    const uploadResult = await new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        {
-          folder: "uploads",
-          resource_type: "auto", // Let Cloudinary detect file type
-          use_filename: true,
-          unique_filename: false,
-        },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      ).end(buffer);
+    // Set expiration time to 3 minutes (180 seconds)
+    const expirationTime = Math.floor(Date.now() / 1000) + 180;
+
+    // Upload to Cloudinary with expiration
+    const result = await new Promise((resolve, reject) => {
+      cloudinary.uploader
+        .upload_stream(
+          {
+            resource_type: "auto",
+            folder: "temp_uploads",
+            expires_at: expirationTime,
+
+          },
+          (error, result) => {
+            if (error) {
+              reject(error);
+            } else {
+              resolve(result);
+            }
+          }
+        )
+        .end(buffer);
     });
-
-    // Schedule auto-delete in 3 minutes
     setTimeout(async () => {
       try {
-        await cloudinary.uploader.destroy(uploadResult.public_id);
-        console.log(`Auto-deleted: ${uploadResult.public_id}`);
+        await cloudinary.uploader.destroy(result.public_id);
+        console.log(`Deleted file: ${result.public_id}`);
       } catch (error) {
-        console.error("Auto-delete failed:", error.message);
+        console.error(`Error deleting file ${result.public_id}:`, error);
       }
-    }, 3 * 60 * 1000);
+    }, 180000);
 
     return NextResponse.json({
-      secure_url: uploadResult.secure_url,
-      public_id: uploadResult.public_id,
-      expiresAt: Date.now() + 3 * 60 * 1000,
+      public_id: result.public_id,
+      secure_url: result.secure_url,
+      expires_at: expirationTime,
     });
-  } catch (err) {
-    console.error("Upload error:", err.message);
+  } catch (error) {
+    console.error("Upload error:", error);
     return NextResponse.json(
-      { error: "Failed to upload file: " + err.message },
+      { error: error.message || "Failed to upload file" },
       { status: 500 }
     );
   }

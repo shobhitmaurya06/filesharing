@@ -8,7 +8,7 @@ export default function Footer() {
       
         <div className="text-center sm:text-left">
           <p className="text-sm sm:text-base font-medium text-gray-300">
-            Copyright &copy; 2025 by Shobhit Maurya &amp; Yugraj Kumar Singh
+            Copyright &copy; 2025 by <Link href="https://www.linkedin.com/in/yugraj-singh-8a8138339/"  target="_blank" className="text-bold relative px-1 py-2 text-lg font-medium  transition-colors duration-300 hover:text-orange-500">Shobhit Maurya</Link> &amp; <Link href="https://www.linkedin.com/in/yugraj-singh-8a8138339/"  target="_blank" className="text-bold relative px-1 py-2 text-lg font-medium  transition-colors duration-300 hover:text-orange-500">Yugraj Kumar Singh</Link>
           </p>
           <p className="text-xs sm:text-sm text-gray-400 mt-1">
             All Rights Reserved

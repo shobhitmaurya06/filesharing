@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { IoIosCloudUpload } from "react-icons/io";
-import { FaDownload, FaEye, FaCheck } from "react-icons/fa";
+import { FaDownload, FaEye, FaCopy, FaRedo } from "react-icons/fa";
 import QRCode from "qrcode";
 import Image from "next/image";
 import toast from "react-hot-toast";
@@ -14,11 +14,12 @@ export default function Card() {
   const [publicId, setPublicId] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(null);
-  const [receive, setReceive] = useState("Receive");
+  const [copyText, setCopyText] = useState("Copy to Clipboard");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isDownloading, setIsDownloading] = useState(false);
 
   const hasDeletedRef = useRef(false);
+  const timerRef = useRef(null);
 
   const resetAll = useCallback(() => {
     setFile(null);
@@ -35,24 +36,23 @@ export default function Card() {
     try {
       setIsDownloading(true);
       const response = await fetch(url);
-      if (!response.ok) throw new Error('Failed to fetch file');
-      
+      if (!response.ok) throw new Error("Failed to fetch file");
+
       const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = blobUrl;
-      a.download = filename || 'downloaded-file';
+      a.download = filename || "downloaded-file";
       document.body.appendChild(a);
       a.click();
-      
       window.URL.revokeObjectURL(blobUrl);
       document.body.removeChild(a);
-      
-      toast.success('Download started successfully!');
+
+      toast.success("Download started successfully!");
       return true;
     } catch (error) {
-      console.error('Download error:', error);
-      toast.error('Download failed: ' + error.message);
+      console.error("Download error:", error);
+      toast.error("Download failed: " + error.message);
       return false;
     } finally {
       setIsDownloading(false);
@@ -61,23 +61,24 @@ export default function Card() {
 
   const handleViewFile = () => {
     if (!cloudUrl) return;
-    window.open(cloudUrl, '_blank');
+    window.open(cloudUrl, "_blank");
   };
 
   const handleUpload = async () => {
     if (!file) return;
 
-    // File validation
     const allowedTypes = [
-      'image/jpeg',
-      'image/png',
-      'application/pdf',
-      'video/mp4',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      "image/jpeg",
+      "image/png",
+      "application/pdf",
+      "video/mp4",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ];
-    
+
     if (!allowedTypes.includes(file.type)) {
-      toast.error("Unsupported file type. Please upload JPG, PNG, PDF, MP4, or DOCX");
+      toast.error(
+        "Unsupported file type. Please upload JPG, PNG, PDF, MP4, or DOCX"
+      );
       return;
     }
 
@@ -97,9 +98,11 @@ export default function Card() {
     try {
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
+
       const xhr = new XMLHttpRequest();
-      xhr.open("POST", "api/upload", true);
-      
+      xhr.open("POST", `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/upload`, true);
+
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
           setUploadProgress(Math.round((event.loaded / event.total) * 100));
@@ -117,11 +120,12 @@ export default function Card() {
         xhr.onerror = () => reject(new Error("Network error"));
         xhr.send(formData);
       });
-      
-      setCloudUrl(data.secure_url);
+
       setPublicId(data.public_id);
-      setQrCode(await QRCode.toDataURL(data.secure_url));
-      setTimeLeft(180);
+      const receiveUrl = `${window.location.origin}/receive/uploads/${data.public_id}`;
+      setCloudUrl(data.secure_url);
+      setQrCode(await QRCode.toDataURL(receiveUrl));
+      setTimeLeft(180); // 3 minutes
       toast.success("File uploaded successfully ✅");
     } catch (err) {
       console.error("Upload error:", err);
@@ -135,46 +139,42 @@ export default function Card() {
     if (!publicId || hasDeletedRef.current) return;
 
     try {
-      const res = await fetch("api/delete", {
+      const res = await fetch("/api/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ public_id: publicId }),
+        body: JSON.stringify({ publicId: publicId }),
       });
 
       if (!res.ok) {
         throw new Error((await res.json()).error || "Delete failed");
       }
-
       toast("File deleted from cloud storage.");
       hasDeletedRef.current = true;
-      resetAll();
     } catch (err) {
       console.error("Delete error:", err);
       toast.error(err.message);
     }
-  }, [publicId, resetAll]);
+  }, [publicId]);
 
-  const handleReceive = async () => {
+  const handleRefresh = useCallback(async () => {
+    if (publicId && !hasDeletedRef.current) {
+      await deleteFileFromCloudinary();
+    }
+    window.location.reload();
+  }, [publicId, deleteFileFromCloudinary]);
+
+  const handleCopyToClipboard = async () => {
     if (!publicId) return;
-    
+
     try {
-      // Only delete from Cloudinary
-      const res = await fetch("api/delete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ public_id: publicId }),
-      });
-
-      if (!res.ok) {
-        throw new Error((await res.json()).error || "Receive failed");
-      }
-
-      toast.success("File marked as received ✅");
-      setReceive("Received");
-      resetAll();
+      const receiveUrl = `${window.location.origin}/receive/uploads/${publicId}`;
+      await navigator.clipboard.writeText(receiveUrl);
+      toast.success("Share link copied to clipboard!");
+      setCopyText("Copied!");
+      setTimeout(() => setCopyText("Copy to Clipboard"), 2000);
     } catch (err) {
-      console.error("Receive error:", err);
-      toast.error(err.message);
+      console.error("Copy error:", err);
+      toast.error("Failed to copy: " + err.message);
     }
   };
 
@@ -186,33 +186,53 @@ export default function Card() {
       return;
     }
 
-    const timer = setInterval(() => {
-      setTimeLeft(prev => prev !== null ? prev - 1 : null);
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prev) => (prev !== null ? prev - 1 : null));
     }, 1000);
 
-    return () => clearInterval(timer);
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
   }, [timeLeft, publicId, deleteFileFromCloudinary]);
 
   useEffect(() => {
     const handleBeforeUnload = (e) => {
       if (publicId && !hasDeletedRef.current) {
-        e.preventDefault();
-        e.returnValue = "You have unsaved uploads. Are you sure you want to leave?";
-        navigator.sendBeacon("/api/delete", JSON.stringify({ public_id: publicId }));
+        const syncDelete = async () => {
+          await deleteFileFromCloudinary();
+        };
+        syncDelete();
       }
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [publicId]);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [publicId, deleteFileFromCloudinary]);
 
   return (
     <div className="flex flex-col gap-6 border border-gray-200 p-6 sm:p-10 w-[95%] sm:w-[90%] max-w-xl rounded-3xl shadow-xl bg-white items-center mx-auto mt-12">
-      <h1 className="text-3xl font-bold text-center text-gray-800">
-        Secure File Upload
-      </h1>
+      <div className="flex justify-between items-center w-full">
+        <h1 className="text-3xl font-bold text-center text-gray-800">
+          Secure File Upload
+        </h1>
+        {(file || publicId) && (
+          <button
+            onClick={handleRefresh}
+            className="p-2 text-gray-500 hover:text-indigo-600 transition-colors"
+            title="Start over"
+          >
+            <FaRedo size={20} />
+          </button>
+        )}
+      </div>
+
       <p className="text-base text-gray-600 text-center">
-        Supports: <span className="font-medium">JPG, PNG, PDF, MP4, DOCX</span> (Max 10MB)
+        Supports: <span className="font-medium">JPG, PNG, PDF, MP4, DOCX</span>{" "}
+        (Max 10MB)
       </p>
 
       <label
@@ -276,8 +296,8 @@ export default function Card() {
 
       {isUploading && (
         <div className="w-full bg-gray-200 rounded-full h-2.5">
-          <div 
-            className="bg-indigo-600 h-2.5 rounded-full" 
+          <div
+            className="bg-indigo-600 h-2.5 rounded-full"
             style={{ width: `${uploadProgress}%` }}
           ></div>
         </div>
@@ -286,7 +306,7 @@ export default function Card() {
       {qrCode && (
         <div className="mt-6 text-center w-full">
           <p className="text-sm text-gray-500 mb-3">
-            Scan QR or click below —{" "}
+            Scan QR to share —{" "}
             <span className="text-red-500">auto-deletes in 3 minutes</span>
           </p>
           <Image
@@ -296,7 +316,6 @@ export default function Card() {
             height={176}
             className="mx-auto border rounded-lg"
           />
-
           <div className="mt-4 grid grid-cols-2 gap-3">
             <button
               onClick={() => handleViewFile()}
@@ -305,22 +324,21 @@ export default function Card() {
               <FaEye />
               View File
             </button>
-            
+
             <button
               onClick={() => handleDownload(cloudUrl, fileName)}
               disabled={isDownloading}
               className="flex justify-center items-center gap-2 text-blue-600 hover:underline text-sm disabled:opacity-50"
             >
               <FaDownload />
-              {isDownloading ? 'Downloading...' : 'Download'}
+              {isDownloading ? "Downloading..." : "Download"}
             </button>
-            
             <button
-              onClick={handleReceive}
-              className="col-span-2 bg-green-500 hover:bg-green-600 text-white px-5 py-1.5 rounded-full text-sm font-medium flex items-center justify-center gap-2"
+              onClick={handleCopyToClipboard}
+              className="col-span-2 bg-blue-500 hover:bg-blue-600 text-white px-5 py-1.5 rounded-full text-sm font-medium flex items-center justify-center gap-2"
             >
-              <FaCheck />
-              {receive}
+              <FaCopy />
+              {copyText}
             </button>
           </div>
 
@@ -330,7 +348,6 @@ export default function Card() {
               {String(timeLeft % 60).padStart(2, "0")}
             </p>
           )}
-
           {publicId && (
             <p className="text-green-600 mt-2 text-xs break-words">
               ✅ Uploaded ID: <code className="font-mono">{publicId}</code>

@@ -68,8 +68,6 @@ export default function Header() {
           </div>
         </div>
       </div>
-
-      {/* Mobile Navigation */}
       <div
         className={`md:hidden ${mobileMenuOpen ? "block" : "hidden"}`}
         aria-hidden={!mobileMenuOpen}
