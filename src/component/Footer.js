@@ -8,13 +8,13 @@ export default function Footer() {
       
         <div className="text-center sm:text-left">
           <p className="text-sm sm:text-base font-medium text-gray-300">
-            Copyright &copy; 2025 by <Link href="https://www.linkedin.com/in/yugraj-singh-8a8138339/"  target="_blank" className="text-bold relative px-1 py-2 text-lg font-medium  transition-colors duration-300 hover:text-orange-500">Shobhit Maurya</Link> &amp; <Link href="https://www.linkedin.com/in/yugraj-singh-8a8138339/"  target="_blank" className="text-bold relative px-1 py-2 text-lg font-medium  transition-colors duration-300 hover:text-orange-500">Yugraj Kumar Singh</Link>
+            Copyright &copy; 2025 by 
           </p>
           <p className="text-xs sm:text-sm text-gray-400 mt-1">
             All Rights Reserved
           </p>
         </div>
-        <div className="flex gap-4 sm:gap-6">
+        {/* <div className="flex gap-4 sm:gap-6">
           <Link
             href="https://www.linkedin.com/in/shobhit-maurya-5672a5263/"
             target="_blank"
@@ -35,7 +35,7 @@ export default function Footer() {
             <FaGithub className="w-8 h-8 sm:w-10 sm:h-10 text-gray-300 rounded-full transition-all duration-300 hover:scale-110 hover:text-white" />
             <span className="sr-only">GitHub</span>
           </Link>
-        </div>
+        </div> */}
       </footer>
     </div>
   );
