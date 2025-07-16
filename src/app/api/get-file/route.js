@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
 cloudinary.config({
-  cloud_name: "dfrazzg8x",
-  api_key:"843854963489147",
-  api_secret: "nu_XBjWyv8ghKxDcAOeFu-HPCZ8",
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
 });
+
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const publicId = searchParams.get("publicId");
