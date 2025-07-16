@@ -14,7 +14,7 @@ export default function Footer() {
             All Rights Reserved
           </p>
         </div>
-        <div className="flex gap-4 sm:gap-6">
+        // <div className="flex gap-4 sm:gap-6">
           // <Link
           //   href="https://www.linkedin.com/in/shobhit-maurya-5672a5263/"
           //   target="_blank"
@@ -35,7 +35,7 @@ export default function Footer() {
           //   <FaGithub className="w-8 h-8 sm:w-10 sm:h-10 text-gray-300 rounded-full transition-all duration-300 hover:scale-110 hover:text-white" />
           //   <span className="sr-only">GitHub</span>
           // </Link>
-        </div>
+        // </div>
       </footer>
     </div>
   );
