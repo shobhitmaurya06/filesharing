@@ -3,15 +3,15 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <div className="w-full min-h-[12vh] border-t border-gray-600 shadow-xl shadow-gray-400 bg-gray-700">
+    <div className="w-full min-h-[12vh] border-t border-gray-600 shadow-xl shadow-gray-400  bg-white">
       <footer className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col sm:flex-row justify-between items-center py-4 gap-4">
       
-        <div className="text-center sm:text-left">
-          <p className="text-sm sm:text-base font-medium text-gray-300">
+        <div className="text-center sm:text-left flex items-center ">
+          <p className="text-sm sm:text-base font-medium text-gray-700">
             Copyright &copy; 2025 by 
           </p>
-          <p className="text-xs sm:text-sm text-gray-400 mt-1">
-            All Rights Reserved
+          <p className="text-xs sm:text-sm text-gray-700 mt-1 ml-2">
+              All Rights Reserved
           </p>
         </div>
         {/* <div className="flex gap-4 sm:gap-6">

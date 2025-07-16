@@ -45,22 +45,22 @@ export default function Contact() {
               <div className="space-y-3 2xl:space-y-5 hidden md:block">
                 {/* Email #1 */}
                 <div className="flex items-center space-x-5">
-                  <Link href="mailto:shobhitmaurya9346@gmail.com">
+                  <Link href="mailto:">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 24 24"
                       fill="currentColor"
-                      className="text-[#2b5f6a] h-7 w-7 animate-pulse"
+                      className="text-indigo-600 h-7 w-7 animate-pulse"
                     >
                       <path d="M1.5 8.67v8.58a3 3 0 0 0 3 3h15a3 3 0 0 0 3-3V8.67l-8.928 5.493a3 3 0 0 1-3.144 0L1.5 8.67Z" />
                       <path d="M22.5 6.908V6.75a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3v.158l9.714 5.978a1.5 1.5 0 0 0 1.572 0L22.5 6.908Z" />
                     </svg>
                   </Link>
-                  <p className="text-lg text-gray-600">shobhitmaurya9346@gmail.com</p>
+                  <p className="text-lg text-gray-600">XYZ@gmail.com</p>
                 </div>
 
                 {/* Email #2 */}
-                <div className="flex items-center space-x-5">
+                {/* <div className="flex items-center space-x-5">
                   <Link href="mailto:yugraj767@gmail.com">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -73,7 +73,7 @@ export default function Contact() {
                     </svg>
                   </Link>
                   <p className="text-lg text-gray-600">yugraj767@gmail.com</p>
-                </div>
+                </div> */}
 
                 {/* Location */}
                 <div className="flex items-center space-x-5">
@@ -86,7 +86,7 @@ export default function Contact() {
                       xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 24 24"
                       fill="currentColor"
-                      className="text-[#2b5f6a] h-7 w-7 animate-pulse"
+                      className="text-indigo-600 h-7 w-7 animate-pulse"
                     >
                       <path
                         fillRule="evenodd"
@@ -138,7 +138,7 @@ export default function Contact() {
                 ></textarea>
                 <button
                   type="submit"
-                  className="bg-[#2b5f6a] py-3 md:py-5 px-10 rounded-lg text-white font-bold text-lg"
+                  className="bg-indigo-600 py-3 md:py-5 px-10 rounded-lg text-white font-bold text-lg"
                 >
                   {sendMail}
                 </button>
